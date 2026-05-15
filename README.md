@@ -34,7 +34,7 @@ with [lazy.nvim](https://github.com/folke/lazy.nvim) and [nvim-cmp](https://gith
 
 then add `{ name = "filemention" }` to your cmp sources. that's it.
 
-[blink.cmp](https://github.com/Saghen/blink.cmp) folks — there's a snippet in [`doc/filemention.txt`](./doc/filemention.txt). you know the drill.
+[blink.cmp](https://github.com/Saghen/blink.cmp) folks. there's a snippet in [`doc/filemention.txt`](./doc/filemention.txt). 
 
 ### config
 
