@@ -4,6 +4,7 @@
   <img src="./logo-light.svg" style="width: 48px; height: 48px;" width="48" height="48"/>
 </picture>
 <br/>
+<br/>
 <b>filemention.nvim</b>
 <br/>
 <br/>
