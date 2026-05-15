@@ -1,7 +1,7 @@
 <picture>
-  <source srcset="./logo-dark.svg" media="(prefers-color-scheme: dark)"/>
-  <source srcset="./logo-light.svg" media="(prefers-color-scheme: light)"/>
-  <img src="./logo-light.svg" style="width: 48px; height: 48px;" width="48" height="48"/>
+  <source srcset="./assets/logo-dark.svg" media="(prefers-color-scheme: dark)"/>
+  <source srcset="./assets/logo-light.svg" media="(prefers-color-scheme: light)"/>
+  <img src="./assets/logo-light.svg" style="width: 48px; height: 48px;" width="48" height="48"/>
 </picture>
 <br/>
 <br/>
