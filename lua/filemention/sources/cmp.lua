@@ -23,13 +23,21 @@ end
 function source:complete(params, callback)
   local trigger = config.options.trigger
   local before = params.context.cursor_before_line
-  if not before:find(trigger, 1, true) then return callback() end
+  local at_pos = before:find(trigger .. "[^" .. vim.pesc(trigger) .. "%s]*$")
+  if not at_pos then return callback() end
+
+  -- If the @ was preceded by `[`, render as a markdown link regardless of config.
+  local bracketed = at_pos > 1 and before:sub(at_pos - 1, at_pos - 1) == "["
+  local fmt = bracketed and "markdown" or config.options.format
 
   files.list(config.options, function(_, paths)
     local items = {}
     local ok = require("cmp").lsp.CompletionItemKind
     for _, path in ipairs(paths) do
-      local insert_text, label = format.render(config.options.format, path)
+      local insert_text, label = format.render(fmt, path)
+      -- In bracketed mode the leading `[` is already in the buffer; strip it
+      -- from the inserted text so the result is `[@name](path)`, not `[[@name](path)`.
+      if bracketed then insert_text = insert_text:sub(2) end
       items[#items + 1] = {
         label = label,
         insertText = insert_text,
