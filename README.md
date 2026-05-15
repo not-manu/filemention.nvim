@@ -1,4 +1,8 @@
-<img src="./logo.svg" style="width: 48px; height: 48px;"/>
+<picture>
+  <source srcset="./logo-dark.svg" media="(prefers-color-scheme: dark)"/>
+  <source srcset="./logo-light.svg" media="(prefers-color-scheme: light)"/>
+  <img src="./logo-light.svg" style="width: 64px; height: 64px;" width="64" height="64"/>
+</picture>
 <br/>
 <b>filemention.nvim</b>
 <br/>
