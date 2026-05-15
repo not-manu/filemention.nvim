@@ -17,6 +17,11 @@ get a <code>@path/to/file</code> mention — native to nvim.
 
 <br/>
 <br/>
+
+<img src="./assets/demo.gif" alt="filemention.nvim demo" width="720"/>
+
+<br/>
+<br/>
 <br/>
 
 <div align="right">
