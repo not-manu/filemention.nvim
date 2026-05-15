@@ -12,7 +12,7 @@ mention files with `@` in neovim!
 
 also works with markdown - [@README.md](README.md)]
 
-perfect for...
+perfect for... (for example: @
 - claude code
 - opencode
 - pi
