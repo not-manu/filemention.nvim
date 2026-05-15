@@ -1,0 +1,42 @@
+*filemention.txt*  Insert @file mentions via completion
+
+==============================================================================
+INTRODUCTION                                            *filemention*
+
+Typing the trigger character (default `@`) in insert mode opens a fuzzy
+completion menu of project files. Selecting one inserts a `@path/to/file`
+mention. Works with both nvim-cmp and blink.cmp.
+
+==============================================================================
+SETUP                                                   *filemention-setup*
+
+Call `require("filemention").setup({...})` once, with any subset of:
+
+  trigger              string   default "@"
+  root                 "cwd"|"git"|fun():string   default "git"
+  respect_gitignore    boolean  default true
+  include_hidden       boolean  default false
+  format               "bare"|"markdown"|fun(path,name):string  default "bare"
+  filetypes            string[]|"*"   default text/markdown/gitcommit
+  max_items            integer  default 500
+  finder               "auto"|"fd"|"rg"|"vim"   default "auto"
+
+==============================================================================
+USAGE                                                   *filemention-usage*
+
+nvim-cmp: source is registered automatically as `filemention`. Add it to
+your sources list:
+  sources = cmp.config.sources({ { name = "filemention" }, ... })
+
+blink.cmp: register the provider explicitly:
+  sources = {
+    default = { "filemention", ... },
+    providers = {
+      filemention = {
+        name = "filemention",
+        module = "filemention.sources.blink",
+      },
+    },
+  }
+
+ vim:tw=78:ts=8:ft=help:norl:
