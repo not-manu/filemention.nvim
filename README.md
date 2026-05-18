@@ -26,15 +26,42 @@ get a <code>@path/to/file</code> mention — native to nvim.
 
 ### install
 
-with [lazy.nvim](https://github.com/folke/lazy.nvim) and [nvim-cmp](https://github.com/hrsh7th/nvim-cmp):
+with [lazy.nvim](https://github.com/folke/lazy.nvim) (the `event` is optional - just lazy-loads on first insert):
 
 ```lua
 { "not-manu/filemention.nvim", event = "InsertEnter", opts = {} }
 ```
 
-then add `{ name = "filemention" }` to your cmp sources. that's it.
+then wire it into your completion engine:
 
-[blink.cmp](https://github.com/Saghen/blink.cmp) folks - there's a snippet in [`doc/filemention.txt`](./doc/filemention.txt).
+<details open>
+<summary><b>nvim-cmp</b></summary>
+
+```lua
+sources = cmp.config.sources({
+  { name = "filemention" },
+  -- ...your other sources
+})
+```
+</details>
+
+<details>
+<summary><b>blink.cmp</b></summary>
+
+```lua
+sources = {
+  default = { "filemention", "lsp", "path", "snippets", "buffer" },
+  providers = {
+    filemention = {
+      name = "filemention",
+      module = "filemention.sources.blink",
+    },
+  },
+}
+```
+</details>
+
+> heads up: by default filemention only activates in `markdown`, `text`, and `gitcommit` files. trying it in a `.lua` buffer and seeing nothing? set `filetypes = "*"` (see config below).
 
 ### config
 
