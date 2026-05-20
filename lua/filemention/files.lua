@@ -13,11 +13,20 @@ end
 
 local function has(bin) return vim.fn.executable(bin) == 1 end
 
----@return table|nil fff.file_picker module if installed and initialized
+---@return table|nil fff.file_picker module if its Rust index is live.
+---NOTE: `fff.file_picker.is_initialized()` only flips true once the user opens
+---fff's picker UI — it's not the right gate for "is the index ready". The Rust
+---index is brought up by `fff.core.ensure_initialized()` on UIEnter, which sets
+---`fff.core.is_file_picker_initialized()`. That is the gate we want.
 local function fff_ready()
-  local ok, fp = pcall(require, "fff.file_picker")
-  if not ok then return nil end
-  if not fp.is_initialized or not fp.is_initialized() then return nil end
+  local core_ok, core = pcall(require, "fff.core")
+  if not core_ok or not core.is_file_picker_initialized() then return nil end
+  local fp_ok, fp = pcall(require, "fff.file_picker")
+  if not fp_ok then return nil end
+  -- `fp.search_files` early-returns {} unless `fp.state.initialized` is true,
+  -- which is normally only flipped by fff's own picker UI. Idempotently flip
+  -- it ourselves so we can use the Rust index without opening the UI.
+  if not fp.state.initialized then pcall(fp.setup) end
   return fp
 end
 
