@@ -100,6 +100,17 @@ if you already use [fff.nvim](https://github.com/dmtrKovalenko/fff.nvim), set `f
 require("filemention").setup({ finder = "fff" })
 ```
 
+with lazy.nvim, add fff as a dependency so it's loaded before filemention activates:
+
+```lua
+{
+  "not-manu/filemention.nvim",
+  event = "InsertEnter",
+  dependencies = { "dmtrKovalenko/fff.nvim" },
+  opts = { finder = "fff" },
+}
+```
+
 filemention does **not** install or configure fff. it just uses fff's index if you have it set up. if fff isn't installed (or hasn't been initialized yet), filemention silently falls back to `fd` → `rg` → `vim`.
 
 ### under the hood
