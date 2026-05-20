@@ -25,7 +25,9 @@ end
 ---@return string backend, string[] argv
 local function build_argv(opts)
   local backend = opts.finder
-  if backend == "auto" then
+  -- "fff" handled upstream in M.list; if we reach here with "fff" it means
+  -- fff wasn't available, so auto-detect like a normal fallback.
+  if backend == "auto" or backend == "fff" then
     if has("fd") then backend = "fd"
     elseif has("rg") then backend = "rg"
     else backend = "vim" end
