@@ -90,17 +90,11 @@ type `[@` instead of `@` and you get a real markdown link:
 
 handy when you're writing actual prose and the bare `@path` looks ugly.
 
-### optional: fff.nvim
+### optional: [fff.nvim](https://github.com/dmtrKovalenko/fff.nvim)
 
 <img src="./assets/fff-demo.gif" alt="filemention.nvim + fff.nvim demo" width="360" align="right"/>
 
-if you already use [fff.nvim](https://github.com/dmtrKovalenko/fff.nvim), set `finder = "fff"` to get frecency-ranked, typo-resistant completion using fff's in-process rust index. recently-accessed files float to the top, and typos in the query still match.
-
-```lua
-require("filemention").setup({ finder = "fff" })
-```
-
-with lazy.nvim, add fff as a dependency so it's loaded before filemention activates:
+frecency ranking. typo resistance. recents on top. costs you one line:
 
 ```lua
 {
@@ -111,7 +105,7 @@ with lazy.nvim, add fff as a dependency so it's loaded before filemention activa
 }
 ```
 
-filemention does **not** install or configure fff. it just uses fff's index if you have it set up. if fff isn't installed (or hasn't been initialized yet), filemention silently falls back to `fd` → `rg` → `vim`.
+no fff? no problem. silently falls back to `fd` → `rg` → `vim`.
 
 ### under the hood
 
