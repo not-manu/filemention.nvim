@@ -76,7 +76,7 @@ require("filemention").setup({
   format = "bare",                -- "bare" | "markdown" | function(path, name)
   filetypes = { "markdown", "text", "gitcommit" },  -- or "*" if you live dangerously
   max_items = 500,
-  finder = "auto",                -- "auto" | "fd" | "rg" | "vim"
+  finder = "auto",                -- "auto" | "fd" | "rg" | "vim" | "fff"
 })
 ```
 
@@ -89,6 +89,16 @@ type `[@` instead of `@` and you get a real markdown link:
 ```
 
 handy when you're writing actual prose and the bare `@path` looks ugly.
+
+### optional: fff.nvim
+
+if you already use [fff.nvim](https://github.com/dmtrKovalenko/fff.nvim), set `finder = "fff"` to get frecency-ranked, typo-resistant completion using fff's in-process rust index. recently-accessed files float to the top, and typos in the query still match.
+
+```lua
+require("filemention").setup({ finder = "fff" })
+```
+
+filemention does **not** install or configure fff. it just uses fff's index if you have it set up. if fff isn't installed (or hasn't been initialized yet), filemention silently falls back to `fd` → `rg` → `vim`.
 
 ### under the hood
 

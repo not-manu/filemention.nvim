@@ -13,6 +13,14 @@ end
 
 local function has(bin) return vim.fn.executable(bin) == 1 end
 
+---@return table|nil fff.file_picker module if installed and initialized
+local function fff_ready()
+  local ok, fp = pcall(require, "fff.file_picker")
+  if not ok then return nil end
+  if not fp.is_initialized or not fp.is_initialized() then return nil end
+  return fp
+end
+
 ---@param opts filemention.Config
 ---@return string backend, string[] argv
 local function build_argv(opts)
@@ -53,25 +61,61 @@ local function vim_walk(root, max)
 end
 
 ---@param opts filemention.Config
----@param cb fun(root:string, files:string[])
-function M.list(opts, cb)
+---@param query string|nil In-progress query (text after the trigger). Only the
+---fff backend uses this; subprocess backends ignore it and rely on the completion
+---engine to filter client-side.
+---@param cb fun(root:string, files:string[], ordered:boolean) `ordered` is true when
+---the backend already returned results in best-first order (fff); false otherwise.
+function M.list(opts, query, cb)
   local root = resolve_root(opts)
+
+  if opts.finder == "fff" then
+    local fp = fff_ready()
+    if fp then
+      local current = vim.api.nvim_buf_get_name(0)
+      if current == "" then current = nil end
+      local items = fp.search_files(query or "", current, opts.max_items, nil, nil) or {}
+      local paths = {}
+      for _, it in ipairs(items) do
+        paths[#paths + 1] = it.relative_path
+      end
+      return cb(root, paths, true)
+    end
+    -- fff requested but not available: fall through to auto-detected backend.
+  end
+
   local backend, argv = build_argv(opts)
 
   if backend == "vim" then
-    return cb(root, vim_walk(root, opts.max_items))
+    return cb(root, vim_walk(root, opts.max_items), false)
   end
 
   local stdout = {}
   vim.system(argv, { cwd = root, text = true }, function(res)
     if res.code ~= 0 or not res.stdout then
-      return vim.schedule(function() cb(root, {}) end)
+      return vim.schedule(function() cb(root, {}, false) end)
     end
     for line in res.stdout:gmatch("[^\r\n]+") do
       stdout[#stdout + 1] = line
       if #stdout >= opts.max_items then break end
     end
-    vim.schedule(function() cb(root, stdout) end)
+    vim.schedule(function() cb(root, stdout, false) end)
+  end)
+end
+
+---Record a file access with fff's frecency tracker, if available. No-op otherwise.
+---fff stores frecency keyed by absolute realpath, so the relative path is resolved
+---against the project root before reporting.
+---@param opts filemention.Config
+---@param relpath string Relative path returned by files.list.
+function M.track_access(opts, relpath)
+  local fp = fff_ready()
+  if not fp then return end
+  local root = resolve_root(opts)
+  local joined = root .. "/" .. relpath
+  vim.uv.fs_realpath(joined, function(err, real)
+    if err or not real then return end
+    pcall(fp.track_access, real)
   end)
 end
 

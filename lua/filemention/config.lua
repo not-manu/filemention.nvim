@@ -6,7 +6,9 @@
 ---@field format "bare"|"markdown"|fun(path:string, name:string):string
 ---@field filetypes string[]|"*" Filetypes the source activates in. Default text-ish only.
 ---@field max_items integer Cap on returned candidates.
----@field finder "auto"|"fd"|"rg"|"vim" File-listing backend.
+---@field finder "auto"|"fd"|"rg"|"vim"|"fff" File-listing backend. "fff" uses fff.nvim's
+---in-process Rust index for frecency-ranked, typo-resistant results; it is an optional
+---integration and only activates if the user has fff.nvim installed and initialized.
 
 ---@type filemention.Config
 local defaults = {
