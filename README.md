@@ -76,7 +76,7 @@ require("filemention").setup({
   format = "bare",                -- "bare" | "markdown" | function(path, name)
   filetypes = { "markdown", "text", "gitcommit" },  -- or "*" if you live dangerously
   max_items = 500,
-  finder = "auto",                -- "auto" | "fd" | "rg" | "vim"
+  finder = "auto",                -- "auto" | "fd" | "rg" | "vim" | "fff"
 })
 ```
 
@@ -89,6 +89,23 @@ type `[@` instead of `@` and you get a real markdown link:
 ```
 
 handy when you're writing actual prose and the bare `@path` looks ugly.
+
+### optional: [fff.nvim](https://github.com/dmtrKovalenko/fff.nvim)
+
+<img src="./assets/fff-demo.gif" alt="filemention.nvim + fff.nvim demo" width="360" align="right"/>
+
+frecency ranking. typo resistance. recents on top. costs you one line:
+
+```lua
+{
+  "not-manu/filemention.nvim",
+  event = "InsertEnter",
+  dependencies = { "dmtrKovalenko/fff.nvim" },
+  opts = { finder = "fff" },
+}
+```
+
+no fff? no problem. silently falls back to `fd` → `rg` → `vim`.
 
 ### under the hood
 

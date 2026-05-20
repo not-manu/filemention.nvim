@@ -2,6 +2,7 @@
 local config = require("filemention.config")
 local files = require("filemention.files")
 local format = require("filemention.format")
+local trigger = require("filemention.trigger")
 local filemention = require("filemention")
 
 local source = {}
@@ -21,19 +22,22 @@ function source.get_keyword_pattern()
 end
 
 function source:complete(params, callback)
-  local trigger = config.options.trigger
-  local before = params.context.cursor_before_line
-  local at_pos = before:find(trigger .. "[^" .. vim.pesc(trigger) .. "%s]*$")
-  if not at_pos then return callback() end
+  local trig = config.options.trigger
+  local m = trigger.match(params.context.cursor_before_line, trig)
+  if not m then return callback() end
 
+  local query, bracketed = m.query, m.bracketed
   -- If the @ was preceded by `[`, render as a markdown link regardless of config.
-  local bracketed = at_pos > 1 and before:sub(at_pos - 1, at_pos - 1) == "["
   local fmt = bracketed and "markdown" or config.options.format
 
-  files.list(config.options, function(_, paths)
+  files.list(config.options, query, function(_, paths, ordered)
     local items = {}
     local ok = require("cmp").lsp.CompletionItemKind
-    for _, path in ipairs(paths) do
+    -- When fff returned the list it's already ranked best-first. Pin that
+    -- order with sortText and pin filterText to the typed query so cmp
+    -- doesn't drop typo-tolerant matches.
+    local frozen_filter = ordered and (trig .. query) or nil
+    for i, path in ipairs(paths) do
       local insert_text, label = format.render(fmt, path)
       -- In bracketed mode the leading `[` is already in the buffer; strip it
       -- from the inserted text so the result is `[@name](path)`, not `[[@name](path)`.
@@ -41,12 +45,20 @@ function source:complete(params, callback)
       items[#items + 1] = {
         label = label,
         insertText = insert_text,
-        filterText = trigger .. path,
+        filterText = frozen_filter or (trig .. path),
+        sortText = ordered and string.format("%06d", i) or nil,
         kind = ok.File,
+        data = { path = path },
       }
     end
-    callback({ items = items, isIncomplete = false })
+    callback({ items = items, isIncomplete = ordered })
   end)
+end
+
+function source:execute(completion_item, callback)
+  local path = completion_item.data and completion_item.data.path
+  if path then files.track_access(config.options, path) end
+  callback(completion_item)
 end
 
 return source
