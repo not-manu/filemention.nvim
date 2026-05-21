@@ -28,22 +28,26 @@ function source:get_completions(ctx, callback)
   local query, bracketed = m.query, m.bracketed
   local fmt = bracketed and "markdown" or config.options.format
 
-  files.list(config.options, query, function(_, paths, ordered)
+  files.list(config.options, query, function(_, entries, ordered)
     local items = {}
     -- When fff returned the list it's already ranked best-first. We pin that
     -- order with sortText and pin filterText to whatever the user typed so
     -- blink doesn't drop typo-tolerant matches.
     local frozen_filter = ordered and (trig .. query) or nil
-    for i, path in ipairs(paths) do
-      local insert_text, label = format.render(fmt, path)
+    local Kind = vim.lsp.protocol.CompletionItemKind
+    for i, entry in ipairs(entries) do
+      local insert_text, label = format.render(fmt, entry.path, entry.is_dir)
       if bracketed then insert_text = insert_text:sub(2) end
+      -- Folders take a leading "0" bucket so they sort above files ("1") in
+      -- the popup regardless of whether the backend produced ordered results.
+      local bucket = entry.is_dir and "0" or "1"
       items[#items + 1] = {
         label = label,
         insertText = insert_text,
-        filterText = frozen_filter or (trig .. path),
-        sortText = ordered and string.format("%06d", i) or nil,
-        kind = vim.lsp.protocol.CompletionItemKind.File,
-        data = { path = path },
+        filterText = frozen_filter or (trig .. entry.path),
+        sortText = bucket .. string.format("%06d", i),
+        kind = entry.is_dir and Kind.Folder or Kind.File,
+        data = { path = entry.path, is_dir = entry.is_dir },
       }
     end
     vim.schedule(function()
@@ -57,8 +61,8 @@ function source:get_completions(ctx, callback)
 end
 
 function source:execute(_, item)
-  local path = item.data and item.data.path
-  if path then files.track_access(config.options, path) end
+  local data = item.data
+  if data and data.path then files.track_access(config.options, data.path, data.is_dir) end
 end
 
 return source

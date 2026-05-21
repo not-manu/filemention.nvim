@@ -28,10 +28,16 @@ describe("files.list", function()
       finder = "vim",
     }
     local got
-    files.list(opts, nil, function(_, paths) got = paths end)
+    files.list(opts, nil, function(_, items) got = items end)
     assert(wait_for(function() return got ~= nil end))
-    table.sort(got)
-    assert.is_true(#got >= 2, "expected at least 2 files, got " .. #got)
+    assert.is_true(#got >= 2, "expected at least 2 items, got " .. #got)
+    local saw_dir, saw_file = false, false
+    for _, it in ipairs(got) do
+      if it.is_dir then saw_dir = true else saw_file = true end
+    end
+    assert.is_true(saw_dir, "empty query should still surface parent folders")
+    assert.is_true(saw_file)
+    assert.is_true(got[1].is_dir, "folders should pin ahead of files")
   end)
 
   it("falls back when finder=fff but fff is unavailable", function()
@@ -46,8 +52,8 @@ describe("files.list", function()
       finder = "fff",
     }
     local got, ordered_seen
-    files.list(opts, "only", function(_, paths, ordered)
-      got, ordered_seen = paths, ordered
+    files.list(opts, "only", function(_, items, ordered)
+      got, ordered_seen = items, ordered
     end)
     assert(wait_for(function() return got ~= nil end))
     assert.is_false(ordered_seen, "fallback path must not claim ordered results")
@@ -86,11 +92,41 @@ describe("files.list with stubbed fff", function()
       finder = "fff",
     }
     local got, ordered_seen
-    files_mod.list(opts, "needle", function(_, paths, ordered)
-      got, ordered_seen = paths, ordered
+    files_mod.list(opts, "needle", function(_, items, ordered)
+      got, ordered_seen = items, ordered
     end)
     assert.is_true(ordered_seen)
-    assert.equals("first_needle.lua", got[1])
-    assert.equals("second.lua", got[2])
+    assert.equals("first_needle.lua", got[1].path)
+    assert.is_false(got[1].is_dir)
+    assert.equals("second.lua", got[2].path)
+    assert.is_false(got[2].is_dir)
+  end)
+
+  it("derives matching parent folders and pins them ahead of files", function()
+    package.loaded["fff.file_picker"].search_files = function(query, _c, _m)
+      return {
+        { relative_path = "src/" .. query .. "/inner/file.lua" },
+        { relative_path = "other/thing.lua" },
+      }
+    end
+    package.loaded["filemention.files"] = nil
+    local files_mod = require("filemention.files")
+    local opts = {
+      root = function() return "/tmp" end,
+      respect_gitignore = true,
+      include_hidden = false,
+      max_items = 10,
+      finder = "fff",
+    }
+    local got
+    files_mod.list(opts, "inner", function(_, items) got = items end)
+    assert.is_true(got[1].is_dir, "first item should be a folder")
+    assert.equals("src/inner/inner", got[1].path)
+    -- The file entries should still be present, after the folder.
+    local saw_file = false
+    for _, it in ipairs(got) do
+      if not it.is_dir then saw_file = true; break end
+    end
+    assert.is_true(saw_file)
   end)
 end)
