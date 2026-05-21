@@ -31,9 +31,13 @@ describe("files.list", function()
     files.list(opts, nil, function(_, items) got = items end)
     assert(wait_for(function() return got ~= nil end))
     assert.is_true(#got >= 2, "expected at least 2 items, got " .. #got)
+    local saw_dir, saw_file = false, false
     for _, it in ipairs(got) do
-      assert.is_false(it.is_dir, "no query → no folders should be derived")
+      if it.is_dir then saw_dir = true else saw_file = true end
     end
+    assert.is_true(saw_dir, "empty query should still surface parent folders")
+    assert.is_true(saw_file)
+    assert.is_true(got[1].is_dir, "folders should pin ahead of files")
   end)
 
   it("falls back when finder=fff but fff is unavailable", function()

@@ -86,22 +86,22 @@ end
 
 ---Derive parent directories from a ranked file list. Folders are emitted in
 ---encounter order so the upstream ranking (fff frecency, fd/rg traversal)
----carries over. Only ancestors whose path subsequence-matches the query are
----kept — with no query we'd flood the popup with every directory in the repo.
+---carries over. When a query is present, only ancestors whose path
+---subsequence-matches the query are kept; with no query we emit every unique
+---parent dir (capped) so users can browse folders too.
 ---@param paths string[]
 ---@param query string
 ---@param max integer
 ---@return string[]
 local function derive_dirs(paths, query, max)
-  if not query or query == "" then return {} end
-  local q = query:lower()
+  local q = (query or ""):lower()
   local seen, dirs = {}, {}
   for _, p in ipairs(paths) do
     local dir = vim.fs.dirname(p)
     while dir and dir ~= "" and dir ~= "." and dir ~= "/" do
       if seen[dir] then break end
       seen[dir] = true
-      if subseq_lower(dir:lower(), q) then
+      if q == "" or subseq_lower(dir:lower(), q) then
         dirs[#dirs + 1] = dir
         if #dirs >= max then return dirs end
       end
