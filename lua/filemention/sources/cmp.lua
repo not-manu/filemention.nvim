@@ -35,6 +35,14 @@ function source:complete(params, callback)
     -- See sources/blink.lua for the rationale: we own the ranking, so freeze
     -- both the filter and the order so cmp doesn't re-shuffle.
     local frozen_filter = ordered and (trig .. query) or nil
+    -- cmp's default comparators include `compare.kind` (which orders by the
+    -- LSP enum: File=17 < Folder=19, putting every file above every folder)
+    -- *and* leaves `compare.sort_text` commented out — so our sortText is
+    -- ignored. Setting the same kind for every item makes compare.kind a
+    -- no-op, after which compare.length (shorter first) and compare.order
+    -- (our insertion order) honour the ranker. Folders stay readable via
+    -- the trailing "/" in the label. Users who want the real folder icon
+    -- can flip `compare.sort_text` on in their cmp setup (see README).
     for i, entry in ipairs(entries) do
       local insert_text, label = format.render(fmt, entry.path, entry.is_dir)
       if bracketed then insert_text = insert_text:sub(2) end
@@ -43,7 +51,7 @@ function source:complete(params, callback)
         insertText = insert_text,
         filterText = frozen_filter or (trig .. entry.path),
         sortText = string.format("%06d", i),
-        kind = entry.is_dir and Kind.Folder or Kind.File,
+        kind = Kind.File,
         data = { path = entry.path, is_dir = entry.is_dir },
       }
     end
