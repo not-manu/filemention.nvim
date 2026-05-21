@@ -121,6 +121,3 @@ no fff? no problem. silently falls back to `fd` → `rg` → `vim`.
 <div align="right">
 <i>...yet another one of manu's creations</i> &nbsp;&bull;&nbsp; <a href="./LICENSE">MIT</a>
 </div>
-
-
-
