@@ -15,6 +15,15 @@ describe("rank.derive_all_dirs", function()
   it("returns an empty list when nothing has a parent", function()
     assert.are.same({}, rank.derive_all_dirs({ "a.txt", "b.lua" }))
   end)
+
+  it("only emits each file's immediate parent (no ancestor chain)", function()
+    -- a/b/c/d.txt should contribute a/b/c/ — not also a/b/ and a/. Shallow
+    -- files contribute their shallow parents on their own, so the union still
+    -- covers all "interesting" folders without flooding the pool.
+    local dirs = rank.derive_all_dirs({ "a/b/c/d.txt", "x/y.txt" })
+    table.sort(dirs)
+    assert.are.same({ "a/b/c/", "x/" }, dirs)
+  end)
 end)
 
 describe("rank.rank empty query", function()

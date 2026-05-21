@@ -35,20 +35,21 @@ local function prefer_hidden(query)
   return query:sub(1, 1) == "." or query:find("/%.") ~= nil
 end
 
----Walk every file's ancestor chain and emit a flat list of unique directory
----candidates (each with a trailing "/" so callers can tell them apart from
----files in a mixed list).
+---Emit the *immediate* parent directory of each file (one per file, deduped).
+---We deliberately do not walk the full ancestor chain: a deeply nested file
+---like a/b/c/d.txt would otherwise inject three folder candidates into the
+---ranking pool, which floods the popup with intermediate folders that the
+---user probably didn't ask about. Shallow files still contribute the shallow
+---parents on their own.
 ---@param files string[]
 ---@return string[]
 function M.derive_all_dirs(files)
   local seen, dirs = {}, {}
   for _, file in ipairs(files) do
     local dir = vim.fs.dirname(file)
-    while dir and dir ~= "" and dir ~= "." and dir ~= "/" do
-      if seen[dir] then break end
+    if dir and dir ~= "" and dir ~= "." and dir ~= "/" and not seen[dir] then
       seen[dir] = true
       dirs[#dirs + 1] = dir .. "/"
-      dir = vim.fs.dirname(dir)
     end
   end
   return dirs
@@ -127,11 +128,10 @@ function M.rank(root, files, dirs, query, limit)
     -- Length penalty: matchfuzzy has no implicit length normalization, so two
     -- candidates with the same matched characters score identically regardless
     -- of total length. fuzzysort (opencode) penalizes longer targets, which is
-    -- what surfaces shorter folders above their longer descendant files.
+    -- what naturally surfaces a folder above its longer descendant file when
+    -- both fuzzy-match equally. No explicit folder bonus on top — that turned
+    -- out to overweight folders and crowd files out of the popup.
     s = s - (#m - qlen)
-    -- Small folder bonus to break remaining ties in favour of dirs, since
-    -- folder-first feels right for an @-mention drill-in workflow.
-    if m:sub(-1) == "/" then s = s + 5 end
     if m:sub(1, qlen):lower() == query_lower then s = s * 2 end
     local f = frecency.score(root .. "/" .. m)
     s = s * (1 + f)
