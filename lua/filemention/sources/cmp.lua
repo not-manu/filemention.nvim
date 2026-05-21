@@ -27,29 +27,22 @@ function source:complete(params, callback)
   if not m then return callback() end
 
   local query, bracketed = m.query, m.bracketed
-  -- If the @ was preceded by `[`, render as a markdown link regardless of config.
   local fmt = bracketed and "markdown" or config.options.format
 
   files.list(config.options, query, function(_, entries, ordered)
     local items = {}
     local Kind = require("cmp").lsp.CompletionItemKind
-    -- When fff returned the list it's already ranked best-first. Pin that
-    -- order with sortText and pin filterText to the typed query so cmp
-    -- doesn't drop typo-tolerant matches.
+    -- See sources/blink.lua for the rationale: we own the ranking, so freeze
+    -- both the filter and the order so cmp doesn't re-shuffle.
     local frozen_filter = ordered and (trig .. query) or nil
     for i, entry in ipairs(entries) do
       local insert_text, label = format.render(fmt, entry.path, entry.is_dir)
-      -- In bracketed mode the leading `[` is already in the buffer; strip it
-      -- from the inserted text so the result is `[@name](path)`, not `[[@name](path)`.
       if bracketed then insert_text = insert_text:sub(2) end
-      -- Folders take a leading "0" bucket so they sort above files ("1") in
-      -- the popup regardless of whether the backend produced ordered results.
-      local bucket = entry.is_dir and "0" or "1"
       items[#items + 1] = {
         label = label,
         insertText = insert_text,
         filterText = frozen_filter or (trig .. entry.path),
-        sortText = bucket .. string.format("%06d", i),
+        sortText = string.format("%06d", i),
         kind = entry.is_dir and Kind.Folder or Kind.File,
         data = { path = entry.path, is_dir = entry.is_dir },
       }

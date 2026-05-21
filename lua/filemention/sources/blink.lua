@@ -30,22 +30,19 @@ function source:get_completions(ctx, callback)
 
   files.list(config.options, query, function(_, entries, ordered)
     local items = {}
-    -- When fff returned the list it's already ranked best-first. We pin that
-    -- order with sortText and pin filterText to whatever the user typed so
-    -- blink doesn't drop typo-tolerant matches.
+    -- We own the ranking now (see lua/filemention/rank.lua), so pin filterText
+    -- to the typed prefix and use sortText to lock the order we returned.
+    -- Without these, blink's own fuzzy would re-shuffle (or drop) our results.
     local frozen_filter = ordered and (trig .. query) or nil
     local Kind = vim.lsp.protocol.CompletionItemKind
     for i, entry in ipairs(entries) do
       local insert_text, label = format.render(fmt, entry.path, entry.is_dir)
       if bracketed then insert_text = insert_text:sub(2) end
-      -- Folders take a leading "0" bucket so they sort above files ("1") in
-      -- the popup regardless of whether the backend produced ordered results.
-      local bucket = entry.is_dir and "0" or "1"
       items[#items + 1] = {
         label = label,
         insertText = insert_text,
         filterText = frozen_filter or (trig .. entry.path),
-        sortText = bucket .. string.format("%06d", i),
+        sortText = string.format("%06d", i),
         kind = entry.is_dir and Kind.Folder or Kind.File,
         data = { path = entry.path, is_dir = entry.is_dir },
       }

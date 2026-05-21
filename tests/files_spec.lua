@@ -42,7 +42,8 @@ describe("files.list", function()
 
   it("falls back when finder=fff but fff is unavailable", function()
     -- No fff.core on the rtp in headless tests, so this exercises the
-    -- silent-fallback path.
+    -- silent-fallback path. We now own the ranking on that path (cache +
+    -- rank.lua), so the fallback IS authoritative — ordered must be true.
     local dir = tmpdir_with({ "only.txt" })
     local opts = {
       root = function() return dir end,
@@ -56,7 +57,7 @@ describe("files.list", function()
       got, ordered_seen = items, ordered
     end)
     assert(wait_for(function() return got ~= nil end))
-    assert.is_false(ordered_seen, "fallback path must not claim ordered results")
+    assert.is_true(ordered_seen, "fallback path now owns the ranking")
     assert.is_true(#got >= 1)
   end)
 end)
