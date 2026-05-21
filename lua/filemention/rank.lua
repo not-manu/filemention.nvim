@@ -120,10 +120,19 @@ function M.rank(root, files, dirs, query, limit)
   if not matches or #matches == 0 then return {} end
 
   local query_lower = query:lower()
+  local qlen = #query
   local ranked = {}
   for i, m in ipairs(matches) do
     local s = scores[i]
-    if m:sub(1, #query):lower() == query_lower then s = s * 2 end
+    -- Length penalty: matchfuzzy has no implicit length normalization, so two
+    -- candidates with the same matched characters score identically regardless
+    -- of total length. fuzzysort (opencode) penalizes longer targets, which is
+    -- what surfaces shorter folders above their longer descendant files.
+    s = s - (#m - qlen)
+    -- Small folder bonus to break remaining ties in favour of dirs, since
+    -- folder-first feels right for an @-mention drill-in workflow.
+    if m:sub(-1) == "/" then s = s + 5 end
+    if m:sub(1, qlen):lower() == query_lower then s = s * 2 end
     local f = frecency.score(root .. "/" .. m)
     s = s * (1 + f)
     if not prefer and is_hidden(m) then s = s * 0.25 end

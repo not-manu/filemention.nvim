@@ -70,6 +70,16 @@ describe("rank.rank fuzzy query", function()
     assert.equals("src/a.lua", got[1])
   end)
 
+  it("ranks a folder above its longer descendant file for the same fuzzy query", function()
+    -- This is the behavior the length penalty + folder bonus exist to produce.
+    -- matchfuzzy alone would tie these (same matched chars, same bonuses) and
+    -- input order would put the file first.
+    local files = { "src/inner/foo.lua", "other/thing.lua" }
+    local dirs = rank.derive_all_dirs(files)
+    local got = rank.rank("/proj", files, dirs, "inner", 100)
+    assert.equals("src/inner/", got[1])
+  end)
+
   it("frecency multiplies the score so recents float up", function()
     local files = { "src/a.lua", "src/b.lua" }
     -- Without frecency the matchfuzzy order is stable but not necessarily
