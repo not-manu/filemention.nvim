@@ -9,9 +9,9 @@ function M.render(fmt, path)
     return fmt(path, name), path
   end
   if fmt == "markdown" then
-    return ("[@%s](%s)"):format(name, path), path
+    return ("[@%s](%s) "):format(name, path), path
   end
-  return "@" .. path, path
+  return "@" .. path .. " ", path
 end
 
 return M
