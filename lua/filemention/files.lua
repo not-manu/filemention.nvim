@@ -71,12 +71,77 @@ local function vim_walk(root, max)
   return out
 end
 
+---Subsequence match: returns true if every char of `needle` appears in
+---`haystack` in order. Both arguments must already be lowercased by the caller.
+local function subseq_lower(haystack, needle)
+  if needle == "" then return true end
+  local hi, ni = 1, 1
+  local hlen, nlen = #haystack, #needle
+  while hi <= hlen and ni <= nlen do
+    if haystack:byte(hi) == needle:byte(ni) then ni = ni + 1 end
+    hi = hi + 1
+  end
+  return ni > nlen
+end
+
+---Derive parent directories from a ranked file list. Folders are emitted in
+---encounter order so the upstream ranking (fff frecency, fd/rg traversal)
+---carries over. Only ancestors whose path subsequence-matches the query are
+---kept — with no query we'd flood the popup with every directory in the repo.
+---@param paths string[]
+---@param query string
+---@param max integer
+---@return string[]
+local function derive_dirs(paths, query, max)
+  if not query or query == "" then return {} end
+  local q = query:lower()
+  local seen, dirs = {}, {}
+  for _, p in ipairs(paths) do
+    local dir = vim.fs.dirname(p)
+    while dir and dir ~= "" and dir ~= "." and dir ~= "/" do
+      if seen[dir] then break end
+      seen[dir] = true
+      if subseq_lower(dir:lower(), q) then
+        dirs[#dirs + 1] = dir
+        if #dirs >= max then return dirs end
+      end
+      dir = vim.fs.dirname(dir)
+    end
+  end
+  return dirs
+end
+
+---@class filemention.Item
+---@field path string Relative path inside project root.
+---@field is_dir boolean
+
+---@param paths string[]
+---@param query string|nil
+---@param max integer Cap on total items (dirs + files).
+---@return filemention.Item[]
+local function with_dirs(paths, query, max)
+  local items = {}
+  -- Cap dirs at roughly a quarter of the popup so they prioritize without
+  -- crowding out actual file matches.
+  local dir_cap = math.max(1, math.floor(max / 4))
+  for _, d in ipairs(derive_dirs(paths, query or "", dir_cap)) do
+    items[#items + 1] = { path = d, is_dir = true }
+    if #items >= max then return items end
+  end
+  for _, p in ipairs(paths) do
+    items[#items + 1] = { path = p, is_dir = false }
+    if #items >= max then break end
+  end
+  return items
+end
+
 ---@param opts filemention.Config
 ---@param query string|nil In-progress query (text after the trigger). Only the
 ---fff backend uses this; subprocess backends ignore it and rely on the completion
 ---engine to filter client-side.
----@param cb fun(root:string, files:string[], ordered:boolean) `ordered` is true when
----the backend already returned results in best-first order (fff); false otherwise.
+---@param cb fun(root:string, items:filemention.Item[], ordered:boolean) `ordered` is
+---true when the backend already returned results in best-first order (fff); false
+---otherwise. Folders (is_dir=true) are always emitted ahead of files.
 function M.list(opts, query, cb)
   local root = resolve_root(opts)
 
@@ -90,7 +155,7 @@ function M.list(opts, query, cb)
       for _, it in ipairs(items) do
         paths[#paths + 1] = it.relative_path
       end
-      return cb(root, paths, true)
+      return cb(root, with_dirs(paths, query, opts.max_items), true)
     end
     -- fff requested but not available: fall through to auto-detected backend.
   end
@@ -98,7 +163,7 @@ function M.list(opts, query, cb)
   local backend, argv = build_argv(opts)
 
   if backend == "vim" then
-    return cb(root, vim_walk(root, opts.max_items), false)
+    return cb(root, with_dirs(vim_walk(root, opts.max_items), query, opts.max_items), false)
   end
 
   local stdout = {}
@@ -110,7 +175,7 @@ function M.list(opts, query, cb)
       stdout[#stdout + 1] = line
       if #stdout >= opts.max_items then break end
     end
-    vim.schedule(function() cb(root, stdout, false) end)
+    vim.schedule(function() cb(root, with_dirs(stdout, query, opts.max_items), false) end)
   end)
 end
 
@@ -119,7 +184,9 @@ end
 ---against the project root before reporting.
 ---@param opts filemention.Config
 ---@param relpath string Relative path returned by files.list.
-function M.track_access(opts, relpath)
+---@param is_dir boolean? Folders are skipped — fff's frecency index keys on files.
+function M.track_access(opts, relpath, is_dir)
+  if is_dir then return end
   local fp = fff_ready()
   if not fp then return end
   local root = resolve_root(opts)
