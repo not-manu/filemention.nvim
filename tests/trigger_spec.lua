@@ -25,6 +25,32 @@ describe("trigger.match", function()
     assert.is_not_nil(m)
     assert.equals("foo", m.query)
     assert.is_true(m.bracketed)
+    assert.is_false(m.trailing_bracket)
+  end)
+
+  it("flags trailing_bracket when the auto-pair `]` is right after the cursor", function()
+    -- Simulates `[@foo|]` with the cursor at `|` — the `]` was inserted by an
+    -- auto-pair plugin when the user typed `[`.
+    local m = trigger.match("see [@foo", "]", "@")
+    assert.is_not_nil(m)
+    assert.equals("foo", m.query)
+    assert.is_true(m.bracketed)
+    assert.is_true(m.trailing_bracket)
+  end)
+
+  it("does not flag trailing_bracket when not bracketed", function()
+    -- `@foo]` is bare — the `]` after the cursor is just text, not an auto-pair leftover.
+    local m = trigger.match("see @foo", "]", "@")
+    assert.is_not_nil(m)
+    assert.is_false(m.bracketed)
+    assert.is_false(m.trailing_bracket)
+  end)
+
+  it("does not flag trailing_bracket when next char isn't `]`", function()
+    local m = trigger.match("see [@foo", " bar", "@")
+    assert.is_not_nil(m)
+    assert.is_true(m.bracketed)
+    assert.is_false(m.trailing_bracket)
   end)
 
   it("stops at whitespace before the cursor", function()
