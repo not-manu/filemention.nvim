@@ -60,9 +60,11 @@ function source:get_completions(ctx, callback)
   end)
 end
 
-function source:execute(_, item)
+function source:execute(_, item, callback, default_implementation)
+  default_implementation()
   local data = item.data
   if data and data.path then files.track_access(config.options, data.path, data.is_dir) end
+  callback()
 end
 
 return source
